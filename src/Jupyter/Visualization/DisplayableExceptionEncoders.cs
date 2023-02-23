@@ -16,10 +16,27 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.Simulation.Common;
 using Microsoft.Quantum.Simulation.Core;
 using Microsoft.Quantum.Simulation.Simulators;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Quantum.IQSharp
 {
-    internal record struct DisplayableException(Exception Exception, IEnumerable<StackFrame>? StackTrace)
+    public class DisplayableExceptionConverter : JsonConverter<DisplayableException>
+    {
+        public override DisplayableException ReadJson(JsonReader reader, Type objectType, DisplayableException existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WriteJson(JsonWriter writer, DisplayableException value, JsonSerializer serializer)
+        {
+            var jt = JToken.FromObject(new DisplayableExceptionToTextEncoder().Encode(value)?.Data ?? "<null exception>");
+            jt.WriteTo(writer);
+        }
+    }
+
+    [JsonConverter(typeof(DisplayableExceptionConverter))]
+    public record struct DisplayableException(Exception Exception, IEnumerable<StackFrame>? StackTrace)
     {
         public string Header =>
             $"Unhandled exception. {Exception.GetType().FullName}: {Exception.Message}";
