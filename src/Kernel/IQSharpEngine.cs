@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.BondSchemas;
 using System.Threading;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using System.IO;
+using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.Quantum.IQSharp.Kernel
 {
@@ -71,6 +72,7 @@ namespace Microsoft.Quantum.IQSharp.Kernel
         internal IWorkspace? Workspace { get; private set; } = null;
 
         private TaskCompletionSource<bool> initializedSource = new TaskCompletionSource<bool>();
+        private DiagnosticsTraceWriter traceWriter;
 
         /// <summary>
         ///     Internal-only method for getting services used by this engine.
@@ -233,15 +235,20 @@ namespace Microsoft.Quantum.IQSharp.Kernel
             RegisterDisplayEncoder(new DisplayableEncoder(MimeTypes.Html));
             RegisterDisplayEncoder(new DisplayableEncoder(MimeTypes.PlainText));
 
+            this.traceWriter = new DiagnosticsTraceWriter(); 
+            this.traceWriter.LevelFilter = TraceLevel.Verbose;
+
             // Register JSON encoders, and make sure that Newtonsoft.Json
             // doesn't throw exceptions on reference loops.
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings
             {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                TraceWriter = traceWriter
             };
             RegisterJsonEncoder("application/x-qsharp-data",
                 JsonConverters.AllConverters
                 .Concat(AzureClient.JsonConverters.AllConverters)
+//                .Concat(new[] { new DisplayableExceptionConverter() })
                 .ToArray());
 
             logger.LogDebug("Registering IQ# symbol resolvers.");
